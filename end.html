@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R.GAME — متجر حسابات وشحن ألعاب</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--accent:#ff6b6b;--dark:#0f1724;--muted:#9aa4b2;--success:#28a745}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Tajawal',sans-serif;background:#07101a;color:#fff;line-height:1.5}
+header{background:linear-gradient(90deg,rgba(255,255,255,0.02),transparent);padding:12px 18px;position:sticky;top:0;z-index:60}
+.container{max-width:1200px;margin:0 auto;padding:0 16px}
+.nav{display:flex;gap:12px;align-items:center}
+.logo{display:flex;align-items:center;gap:10px}
+.logo img{width:48px;height:48px;border-radius:10px;object-fit:cover}
+.brand{font-weight:900}
+.search{flex:1}
+.search input{width:100%;padding:10px 12px;border-radius:10px;border:0;background:#0b1116;color:#fff}
+.btn{background:var(--accent);padding:10px 14px;border-radius:10px;color:#111;font-weight:800;border:0;cursor:pointer}
+.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px;border-radius:8px;color:#fff;cursor:pointer}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-top:20px}
+.card{background:linear-gradient(180deg,#0b1116,#07101a);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+.card img{width:100%;height:140px;object-fit:cover;border-radius:8px}
+.card h3{font-size:16px;margin:8px 0 4px}
+.price{font-weight:800;color:var(--accent)}
+.meta{color:var(--muted);font-size:13px}
+
+.cart-drawer{position:fixed;right:0;top:0;height:100%;width:360px;background:#07101a;box-shadow:-20px 0 50px rgba(0,0,0,0.6);transform:translateX(110%);transition:transform .28s;z-index:80;padding:16px}
+.cart-drawer.open{transform:translateX(0)}
+.cart-item{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.03)}
+.cart-item img{width:56px;height:46px;object-fit:cover;border-radius:6px}
+
+#checkoutModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;z-index:90}
+#checkoutModal .modal-content{background:#111;padding:24px;border-radius:12px;width:90%;max-width:720px}
+#checkoutModal h3{margin-top:0}
+#checkoutModal label{display:block;margin-top:12px;margin-bottom:6px}
+#checkoutModal input, #checkoutModal select{width:100%;padding:10px;border-radius:8px;border:0;background:#0b1116;color:#fff;margin-bottom:12px}
+#checkoutModal .order-btn{background:var(--success);color:#fff;padding:12px 16px;font-weight:700;border:0;border-radius:10px;cursor:pointer;width:100%;margin-top:10px}
+</style>
+</head>
+<body>
+<header>
+<div class="container nav">
+<div class="logo">
+<img src="https://images.unsplash.com/photo-1605902711622-cfb43c44367e?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3&s=placeholder" alt="logo">
+<div class="brand">R.GAME</div>
+</div>
+<div class="search">
+<input id="searchInput" placeholder="ابحث عن اللعبة أو الحساب أو طريقة الشحن...">
+</div>
+<button class="btn" id="cartBtn">عربة (0)</button>
+</div>
+</header>
+
+<main class="container">
+<section>
+<h2 style="margin-top:24px;color:var(--accent)">منتجات مميزة</h2>
+<div class="grid" id="productsGrid"></div>
+</section>
+
+<div id="checkoutModal">
+<div class="modal-content">
+<h3>إتمام الطلب</h3>
+<div id="checkoutDetails" style="color:var(--muted)"></div>
+<label>الاسم الكامل</label>
+<input type="text" id="fullName" required>
+<label>البريد الإلكتروني</label>
+<input type="email" id="email" required>
+<label>طريقة الدفع</label>
+<select id="paymentMethod">
+<option value="online">دفع الكتروني</option>
+<option value="cod">دفع عند الاستلام</option>
+</select>
+<button class="order-btn" onclick="submitOrder()">طلب المنتج</button>
+<button class="secondary" style="margin-top:8px;" onclick="closeCheckout()">إلغاء</button>
+</div>
+</div>
+</main>
+
+<div class="cart-drawer" id="cartDrawer">
+<h3>عربتك</h3>
+<div id="cartItems"></div>
+<div style="margin-top:12px;border-top:1px solid rgba(255,255,255,0.03);padding-top:12px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div>الإجمالي</div>
+<div id="cartTotal" style="font-weight:800;color:var(--accent)">0 د.ج</div>
+</div>
+<div style="margin-top:12px;display:flex;gap:8px">
+<button class="btn" onclick="openCheckout()">تابع للدفع</button>
+<button class="secondary" onclick="clearCart()">تفريغ</button>
+</div>
+</div>
+</div>
+
+<!-- EmailJS الحديثة -->
+<script type="text/javascript" src="https://cdn.emailjs.com/dist/email.min.js"></script>
+<script>
+emailjs.init("H1UCQ3TNmVxTTUxaJ"); // public key
+</script>
+
+<script>
+const products=[
+{id:1,title:'حساب فري فاير - مستوى 59 + سكنات',price:4500,meta:'تسليم فوري',img:'https://i.pinimg.com/736x/e6/40/55/e6405574938e46795f8a2d86f95fe416.jpg'},
+{id:2,title:'حساب Steam - ألعاب متعددة',price:7200,meta:'2FA مفعل',img:'https://i.pinimg.com/736x/12/c0/c9/12c0c9229040937d043d01f74b1d3f4b.jpg'},
+{id:3,title:'حساب GTA V RP مع كل الحقوق',price:1000,meta:'تسليم فوري',img:'https://i.imgur.com/g5tXGRL.jpeg'}
+];
+
+const cart=[];
+
+function renderProducts(list){
+const grid=document.getElementById('productsGrid'); grid.innerHTML='';
+list.forEach(p=>{
+const card=document.createElement('div'); card.className='card';
+card.innerHTML=`<img src="${p.img}" alt="${p.title}"><h3>${p.title}</h3><div class='meta'>${p.meta}</div><div style='display:flex;justify-content:space-between;align-items:center;margin-top:8px'><div class='price'>${p.price} د.ج</div><div><button class='btn' onclick='addToCart(${p.id})'>أضف للعربة</button></div></div>`;
+grid.appendChild(card);
+});
+}
+
+function addToCart(id){
+const p=products.find(x=>x.id===id);
+const exists=cart.find(i=>i.id===id);
+if(exists) exists.qty++; else cart.push({id:p.id,title:p.title,price:p.price,qty:1,img:p.img});
+localStorage.setItem('lastProduct', JSON.stringify(p));
+updateCartUI(); openCart();
+}
+
+function updateCartUI(){
+document.getElementById('cartBtn').innerText=`عربة (${cart.reduce((s,i)=>s+i.qty,0)})`;
+const container=document.getElementById('cartItems'); container.innerHTML='';
+let total=0;
+cart.forEach(item=>{
+total+=item.price*item.qty;
+const el=document.createElement('div'); el.className='cart-item';
+el.innerHTML=`<img src='${item.img}'><div style='flex:1'><div>${item.title}</div><div class='meta'>${item.price} د.ج x ${item.qty}</div></div>`;
+container.appendChild(el);
+});
+document.getElementById('cartTotal').innerText=total+' د.ج';
+}
+
+function openCart(){document.getElementById('cartDrawer').classList.add('open');}
+function closeCart(){document.getElementById('cartDrawer').classList.remove('open');}
+document.getElementById('cartBtn').addEventListener('click',()=>{document.getElementById('cartDrawer').classList.toggle('open');});
+function clearCart(){cart.length=0;updateCartUI();}
+
+function openCheckout(){
+if(cart.length===0){alert('العربة فارغة'); return;}
+document.getElementById('checkoutModal').style.display='flex';
+const details=cart.map(i=>`${i.title} x${i.qty} — ${i.price*i.qty} د.ج`).join('\n');
+document.getElementById('checkoutDetails').innerText=details;
+const last=JSON.parse(localStorage.getItem('lastProduct'));
+if(last){document.getElementById('fullName').value=last.title;}
+}
+
+function closeCheckout(){document.getElementById('checkoutModal').style.display='none';}
+
+function submitOrder(){
+const name=document.getElementById('fullName').value;
+const email=document.getElementById('email').value;
+const method=document.getElementById('paymentMethod').value;
+if(!name || !email){alert('الرجاء ملء جميع الحقول'); return;}
+emailjs.send("service_jae833s","template_ja011yl",{
+from_name:name,
+email:email,
+order_details:cart.map(i=>`${i.title} x${i.qty}`).join(', '),
+payment_method:method
+}).then(()=>{alert(`شكراً ${name}! تم طلب المنتج بنجاح.`);},
+(err)=>{alert("حدث خطأ أثناء إرسال الطلب: "+err.text);});
+clearCart(); closeCheckout(); closeCart();
+}
+
+document.getElementById('searchInput').addEventListener('input',function(e){
+const q=e.target.value.trim(); if(!q) renderProducts(products); else renderProducts(products.filter(p=>p.title.includes(q)||p.meta.includes(q)));
+});
+
+renderProducts(products);
+updateCartUI();
+</script>
+</body>
+</html>
